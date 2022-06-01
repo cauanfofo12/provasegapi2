@@ -1,10 +1,11 @@
 import 'dotenv/config'
 
 import usuarioController from './controller/usuarioController.js'
-import filmeControll from './controller/filmeController.js'
+import filmeController from './controller/filmeController.js'
 
 import express from 'express'
 import cors from 'cors'
+
 
 
 
@@ -12,8 +13,12 @@ const server = express();
 server.use(cors());
 server.use(express.json());
 
+server.use('/storage/capasfilmes', express.static('storage/capasfilmes'));
 
 server.use(usuarioController);
+
+server.use(filmeController);
+
 
 
 
