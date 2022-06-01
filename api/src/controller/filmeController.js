@@ -1,4 +1,4 @@
-import {inserirFilme, inserirImagem, ListarTodosFilmes, removerFilme} from "../repository/filmeRepository.js"
+import {alterarFilme, buscarPorNome, inserirFilme, inserirImagem, ListarTodosFilmes, removerFilme} from "../repository/filmeRepository.js"
 import multer from 'multer'
 
 import { Router } from "express"
@@ -18,13 +18,13 @@ server.post('/filme', async (req, resp) =>{
         if(!filmesnovos.sinopse){
             throw new Error('sinopse do filme é obrigatorio')
         }
-        if(!filmesnovos.avaliacao){
+        if(!filmesnovos.avaliacao == undefined || filmesnovos.avaliacao < 0){
             throw new Error('avaliação do filme é obrigatorio')
         }
         if(!filmesnovos.lancamento){
             throw new Error('lançamento do filme é obrigatorio')
         }
-        if(!filmesnovos.disponivel){
+        if(filmesnovos.disponivel == undefined){
             throw new Error('campo disponivel é obrigatorio')
         }
         if(!filmesnovos.usuario){
@@ -47,7 +47,7 @@ server.post('/filme', async (req, resp) =>{
 
 
 
-server.put('/filme/:id/capa',upload.single('capa') ,async (req, resp)=>{
+server.put('/filme/capa',upload.single('capa') ,async (req, resp)=>{
     try{
 
         const { id } = req.params;
@@ -67,32 +67,109 @@ server.put('/filme/:id/capa',upload.single('capa') ,async (req, resp)=>{
         }
     })
 
-server.get('/filme', async (req, resp) =>{
-    try{
-        const resposta= Number(req.params.resposta);
+    server.get('/filme/busca', async (req, resp) => {
+        try {
+            const  { nome }  = req.query;
+    
+            const resposta = await buscarPorNome(nome);
+    
+            if (!resposta)
+            resp.status(404).send([])
+            else
+            resp.send(resposta);
+        }
+        catch (err) {
+            resp.status(400).send({
+                erro: err.message
+            })
+        }
+    })
+
+    server.get('/filme/:id', async (req, resp) => {
+        try {
+            const  id  = Number (req.params.id);
+    
+            const resposta = await buscarPorID(id);
+    
+            if (!resposta)
+            resp.status(404).send([])
+            else
+            resp.send(resposta);
+        }
+        catch (err) {
+            resp.status(400).send({
+                erro: err.message
+            })
+        }
+    })
+
+
+server.get('/filme', async (req, resp) => {
+    try {
+        const resposta = await ListarTodosFilmes();
         resp.send(resposta);
     }
-    catch (err){
+    catch (err) {
         resp.status(400).send({
-        erro:err.message   
+            erro: err.message
         })
     }
 })
 
-server.delete('/filme', async (req, resp) =>{
-    try{
-        const [id] = req.params;
+server.delete('/filme/:id', async (req, resp) => {
+    try {
+        const { id } = req.params;
 
-        const resposta = await removerFilme(id)
-        if(resposta != 1){
-            throw new Error('filme não pode ser removido')
-        }
+        const resposta = await removerFilme(id);
+
+        if (resposta != 1)
+        throw new Error('Filme não pode ser removido');
+
+        resp.status(204).send();
     }
-    catch (err){
+    catch (err) {
         resp.status(400).send({
-            erro:err.message  
-    })
-}
+            erro: err.message
+        })
+    }
+})
+
+server.put('/filme/:id', async (req, resp) => {
+    try{
+        const { id } = req.params;
+        const filme = req.body;
+
+        if(!filme.nome){
+            throw new Error('nome do filme é obrigatorio')
+        }
+        if(!filme.sinopse){
+            throw new Error('sinopse do filme é obrigatorio')
+        }
+        if(!filme.avaliacao == undefined || filme.avaliacao < 0){
+            throw new Error('avaliação do filme é obrigatorio')
+        }
+        if(!filme.lancamento){
+            throw new Error('lançamento do filme é obrigatorio')
+        }
+        if(filme.disponivel == undefined){
+            throw new Error('campo disponivel é obrigatorio')
+        }
+        if(!filme.usuario){
+            throw new Error('usuario não logado')
+        }
+
+        const resposta = await alterarFilme(id, filme);
+        if (resposta != 1 )
+            throw new Error("Filme não pode ser alterado");
+            else
+                resp.status(204).send();
+
+    } catch (err) {
+        resp.status(400).send({
+            erro: err.message
+        })
+    }
+
 })
 
 
